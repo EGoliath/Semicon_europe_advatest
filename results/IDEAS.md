@@ -176,3 +176,95 @@ Run: bench_20261111_031452_best_hybrid (290 runs, all bit-exact).
 
 Verdict: the size gain is too small to justify halving compression speed.
 Plain `mixed` gets almost all of it (L19: 709.4 vs 709.0 MB) at full speed.
+
+---
+
+## 10. Ideas from the "split bit-planes, not XOR" report → `planes` / `planesxz`
+
+The report's synthetic benchmark predicted 1.3–2x over zstd. Following its own
+advice ("measure before modeling"), every idea was first measured on the REAL
+corpus, and only the ones that paid were built.
+
+### E0 – where do the compressed bytes live? (`tools/recon.py` → `results/recon.md`, `recon_pins.csv`)
+Each pin's bit stream (1 bit/vector) compressed alone with zstd L9, whole corpus:
+
+| pin class | pins | zstd bytes | share |
+|---|---|---|---|
+| dense (≥ 1% toggles) | 1,454 | 773.7 MB | **99.97%** |
+| slow (< 1% toggles) | 108 | 210 KB | 0.03% |
+| periodic (clocks, ≥ 99.9% match at best lag) | 11 | 3 KB | 0.00% |
+| constant | 122 | 0 | – |
+| **exact duplicate of another pin** | **1,216** | 0 | – |
+| ternary H/L/X (001, 015) | 320 | 36 KB raw | – |
+
+* 38% of all pins are exact copies (192-pin files = 64 unique × 3, 128-pin = 64 × 2:
+  multi-site patterns). No complementary pins (and see below why they would be caught anyway).
+* zstd beats the order-1 (Markov) entropy floor by ~1.4x (773.7 MB vs 1,058 MB):
+  the dense pins carry higher-order repeated structure, which LZ matches find.
+  The order-1 bound is therefore NOT the floor for this data.
+* Period-aligned XOR (x[t] ^= x[t − best lag]) on all pins with a period: 773.67 → 773.20 MB, **−0.06%**.
+
+### Decisions per report idea (real data, `tools/explore_v3.py`)
+
+| report idea | measured on this corpus | built? |
+|---|---|---|
+| Canonicalise text, pin-major order | already done since §3–4 (newlines dropped, pin-major) | already |
+| Bit-planes instead of 2-bit symbols | pins are already 1 bit; only the 160 H/L/X pins have 3 states → **mask plane + value plane** | yes (tiny effect: 36 KB) |
+| XOR delta before zstd | the report itself shows it hurts; never used here | no |
+| Period-aligned XOR on masks | −0.06% | no |
+| Run lengths (Rice/varint) for slow pins | slow pins are 0.03% of the output | no |
+| Constant / periodic / alias descriptors | constants were already 0 bits; **duplicates: 38% of pins** → alias records | **yes** |
+| Long-range dedup / zstd window 2³⁰–2³¹ | identical output to window 2²⁷ (009, 024, 025, 026) | no |
+| Cross-file dedup | 0 shared pins and 0 shared 64 KiB blocks between 009/024/025/026; solid stream +0.11%; only 002 = 017 (3 KB) | no |
+| **Longer per-pin context** | whole-file pin series vs 1 Mi-vector chunks: **−5.2% (L9) / −5.6% (L19)** on 009/024/025/026 | **yes** |
+| Independent frames + index (seekable) | pins compress independently with no loss (009: 21.05 MB per pin vs 21.10 MB joint) → frames per pin group | **yes** |
+| Stronger back end (xz / LZMA) | 8 real pin streams: xz −9e is **2–11% smaller** than zstd −19 (zstd −22 = −19) | **yes, as archive tier** |
+| Context-mixing coder | not tried (decode speed in MB/s) | no |
+
+Complementary pins need no special case: bit = (symbol ≠ the pin's first-row
+symbol), so every stream starts with 0 and an L/H mirror of a 0/1 pin has an
+identical bit stream – the same exact-comparison alias catches it.
+
+### The new mode: `planes` (container v3, `patzstd/planes.py`, spec in `docs/FORMAT.md` §9)
+* segments of 16 Mi vectors (the whole file for 27/29 files), each pin's series contiguous;
+* per segment a pin map: stored / all-0 / all-1 / alias-of-pin-j (exact byte comparison);
+* H/L/X pins → mask plane + value plane;
+* streams grouped into ~2 MiB frames, each an independent zstd (or xz) frame,
+  compressed and decompressed in parallel; decoder pipelines unpack + hash
+  against the writer;
+* checksum = xxh3-128 over decoded bytes and every metadata byte (a flip of any
+  byte of the file is detected – tested byte by byte).
+
+### Full corpus, same session (bench_20261111_082512_planes_full, 232 runs, all bit-exact)
+
+| config | size | ratio | vs .pat zip | comp MB/s | decomp MB/s |
+|---|---|---|---|---|---|
+| raw:9 (plain zstd) | 1.53 GB | 14.9x | 1.1x | 204 | 617 |
+| mixed:9 (previous balanced) | 752.5 MB | 31.0x | 2.3x | 901 | 717 |
+| mixed:19 (previous smallest practical) | 709.4 MB | 32.9x | 2.4x | 48 | 841 |
+| **planes:3** | 754.3 MB | 30.9x | 2.3x | **1496** | 996 |
+| **planes:9** | **738.6 MB** | **31.6x** | 2.3x | **1037** | **945** |
+| **planes:19** | **700.6 MB** | **33.3x** | 2.4x | **309** | **1030** |
+| **planesxz:6** | **667.8 MB** | **34.9x** | **2.6x** | 257 | 808 |
+| planesxz:9 | 667.0 MB | 34.9x | 2.6x | 179 | 797 |
+
+vs the previous modes at the same level:
+* planes:9 vs mixed:9: **−1.8% size, +15% compression, +32% decompression speed**.
+* planes:19 vs mixed:19: −1.2% size, **6.4x faster compression**, +22% decompression.
+* planesxz:6 vs mixed:19: **−5.9% size, 5.4x faster compression**, about the same decompression.
+* Per file the gain is largest on the multi-site files (009, 024, 025, 026: −5 to −6% at
+  L9/L19, −17% with xz) and smallest on the 32 M-vector single-site files (003, 020: −0.1 to −0.8%).
+* Losses: tiny files (001, 002, 013, 015, 017) are 100–1,500 bytes larger because v3
+  has per-member frames; a few mid-size files are 1–2% larger at L19 because 2 MiB
+  frames lose some cross-pin context (`--frame-mib 8` recovers it: 014 L19 −1.5%,
+  009 L19 −0.6%, xz −0.6 to −1.8%, at half the compression speed).
+* Decompression speeds include the test bench's own SHA-256 check (≈1.8 GB/s alone).
+  Without it, planes:9 decodes file 028 at 2.7 GB/s.
+* Note: during files 003–005 of this run, the unit tests were running at nice 19
+  in parallel; speeds of those files may be a few % low.
+
+Verdict: the report's headline ideas (bit-planes, XOR, RLE, period prediction)
+do not move this corpus, because it is already 1 bit/pin and 99.97% of the bytes
+are dense pins. What did pay: longer per-pin context, pin aliasing, parallel
+frames and an xz archive tier – about 6% smaller and up to 6x faster than the
+previous best, every byte verified.

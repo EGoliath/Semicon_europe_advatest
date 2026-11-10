@@ -23,8 +23,11 @@ def main():
                     help="zstd level 1-22 (default 3), or none = packing only")
     ap.add_argument("-T", "--threads", type=int, default=-1, help="-1 = all cores")
     ap.add_argument("--mode", default="auto",
-                    choices=["auto", "raw", "transpose", "bitpack", "t5", "t5row", "t5col", "mixed", "best"])
+                    choices=["auto", "raw", "transpose", "bitpack", "t5", "t5row", "t5col", "mixed", "best", "planes", "planesxz"])
     ap.add_argument("--no-long", action="store_true", help="disable long-distance matching")
+    ap.add_argument("--frame-mib", type=float, default=None,
+                    help="planes/planesxz: raw MiB per frame (default 2; 8 = 1-2%% smaller at "
+                         "L19 / xz, about 2x slower to compress)")
     a = ap.parse_args()
 
     os.makedirs(a.outdir, exist_ok=True)
@@ -36,7 +39,8 @@ def main():
         rep = compress(src, dst, level=None if a.level == "none" else int(a.level),
                        threads=a.threads,
                        long_distance=not a.no_long,
-                       force_mode=None if a.mode == "auto" else a.mode)
+                       force_mode=None if a.mode == "auto" else a.mode,
+                       group_bytes=int(a.frame_mib * (1 << 20)) if a.frame_mib else None)
         dt = time.perf_counter() - t0
         orig = sum(m["size"] for m in rep)
         comp = os.path.getsize(dst)

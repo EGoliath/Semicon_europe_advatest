@@ -125,3 +125,66 @@ chunk: W × ⌈r/8⌉ bytes, pin-major, bit = (symbol ≠ base[c]), MSB first
 * Decoder: per-member xxh3-128 over the reconstructed bytes, plus length checks.
 * Test bench: independent SHA-256 of each source file compared with the
   SHA-256 of the decoded stream, outside the timed section.
+
+---
+
+## 9. Container v3 – `planes` / `planesxz` (patzstd/planes.py)
+
+Written by `--mode planes` (zstd frames) and `--mode planesxz` (xz/LZMA2 frames).
+Unlike v1/v2, the file is **not** wrapped in an outer zstd stream: every payload
+is cut into independent frames listed in an index, so frames are compressed and
+decompressed in parallel and any segment can be decoded on its own.
+The decoder recognises v3 by its first 5 bytes `50 5A 53 54 03` (`"PZST\x03"`).
+
+```
+magic   5 bytes  "PZST" 0x03
+count   u32
+member[count]:
+    name_len u16, name, mode u8 (6 planes | 7 zraw), size u64,
+    codec u8 (0 stored | 1 zstd | 2 xz)
+    mode 6 (planes), member must be a grid of W-symbol lines, every pin <= 3 symbols:
+        W u32, rows u64, S u32          S = vectors per segment, multiple of 8 (default 16 Mi)
+        META(pin table: W x (cls u8, a0 u8, a1 u8, a2 u8))
+                                        cls 0 constant (a0), 1 binary (a0 = first-row
+                                        symbol, a1 = the other), 2 ternary (a2 = mask
+                                        symbol, X if present)
+        nseg u32 = ceil(rows / S)
+        segment[nseg]  (r vectors, nb = ceil(r / 8)):
+            ngroups u32
+            META(map: W x u32, groups: ngroups x (nstreams u32, comp_len u64))
+            frame[ngroups]               comp_len bytes each, raw = nstreams * nb bytes
+    mode 7 (zraw), any bytes:
+        F u32 (raw bytes per frame, default 32 MiB), nframes u32 = ceil(size / F)
+        nframes x comp_len u64, frames
+    hash 16 bytes
+```
+
+`META(x)` = `u32 len` + x, zstd-compressed unless codec = 0 (then stored).
+
+**Pin map** (binary pins; entry is 0 for constant / ternary pins):
+
+| value | meaning |
+|---|---|
+| `0xFFFFFFFF` | stored: the pin's bits are the next stream of the segment |
+| `0xFFFFFFFE` | all bits 0 in this segment (pin = a0 throughout) |
+| `0xFFFFFFFD` | all bits 1 in this segment (pin = a1 throughout) |
+| `j < c` | same bits as pin j, which must be a stored binary pin |
+
+Bits are `symbol != a0`, so every stream starts with 0 and a complementary pin
+(e.g. `LH…` mirroring `10…`) has an identical bit stream and is caught by the
+same alias entry. The encoder compares the streams byte for byte (no hashing).
+
+**Stream order** of a segment: pins in order; a stored binary pin contributes
+its bits; a ternary pin contributes its mask plane (`symbol == a2`) and then its
+value plane (`symbol == a1`). Each stream is nb bytes, MSB = earliest vector.
+Groups take consecutive streams (about 2 MiB raw per frame). Decoding: binary
+symbol = a0 if bit 0 else a1; ternary = a2 if mask, else a1 if value, else a0;
+mask and value both set is an error.
+
+**Checksum**: `xxh3_128( xxh3_128(original member bytes) || xxh3_128(all metadata
+bytes of the record) )`, where metadata is every byte of the record except the
+frames and the hash itself (header from `name_len` on, W/rows/S, META blobs,
+counts, frame index). Frames are verified through the bytes they decode to.
+Every length, count, class, map entry and frame size is validated before use;
+any mismatch is a `PzstError`. The test suite flips every byte of a v3 file
+and checks that each flip is detected.

@@ -44,14 +44,14 @@ import numpy as np
 import xxhash
 import zstandard as zstd
 
-from . import fast, ternary
+from . import fast, planes, ternary
 
 MAGIC = b"PZST\x02"
 MODE_RAW, MODE_TRANSPOSE, MODE_BITPACK = 0, 1, 2
 MODE_T5ROW, MODE_MIXED, MODE_T5S = 3, 4, 5
 MODE_NAMES = {MODE_RAW: "raw", MODE_TRANSPOSE: "transpose", MODE_BITPACK: "bitpack",
               MODE_T5ROW: "t5row", MODE_MIXED: "mixed", MODE_T5S: "t5"}
-FORCE_MODES = ("raw", "transpose", "bitpack", "t5", "t5row", "t5col", "mixed", "best")
+FORCE_MODES = ("raw", "transpose", "bitpack", "t5", "t5row", "t5col", "mixed", "best", "planes", "planesxz")
 ZSTD_MAGIC = b"\x28\xb5\x2f\xfd"
 T5_BLOCK = 1 << 20                    # t5 stream block (original bytes)
 BLK_RAW, BLK_T5 = 1, 2
@@ -325,7 +325,7 @@ def _packed_size(mode, p, chunk_rows):
 
 
 def compress(src_path, dst_path, level=3, threads=-1, long_distance=True,
-             force_mode=None, chunk_rows=DEFAULT_CHUNK_ROWS):
+             force_mode=None, chunk_rows=DEFAULT_CHUNK_ROWS, seg_rows=None, group_bytes=None):
     """Compress a .pat (or extracted directory) into dst_path.
 
     level      : zstd level, or None to skip zstd (packing only).
@@ -335,6 +335,10 @@ def compress(src_path, dst_path, level=3, threads=-1, long_distance=True,
         t5row   vector grid row-major ternary, one file alphabet (<= 3 symbols)
         t5col   pin-major ternary for every pin (per-pin alphabet <= 3)
         mixed   pin-major per-pin radix: constant 0 bit / binary / ternary
+        planes  container v3 (patzstd/planes.py): full-length per-pin bit
+                planes, pin aliasing, H/L/X mask+value planes, independent
+                zstd frames per pin group -> parallel (de)compression
+        planesxz  same container, xz/LZMA frames (archive tier, level = xz preset)
         best    hybrid: encode the vector file with the earlier auto choice
                 (bitpack / transpose) AND mixed, keep the smaller result.
                 Each candidate is compressed into its own zstd frame; the
@@ -347,6 +351,15 @@ def compress(src_path, dst_path, level=3, threads=-1, long_distance=True,
     fast.set_threads(threads if threads and threads > 0 else os.cpu_count())
     members = members_from_path(src_path)
     report = []
+    if force_mode in ("planes", "planesxz"):
+        with open(dst_path, "wb") as fout:
+            fout.write(planes.MAGIC3 + struct.pack("<I", len(members)))
+            for m in members:
+                gi = grid_info(m, chunk_rows) if m.name.lower().endswith(".vec") else None
+                report.append(planes.write_member(
+                    fout, m, gi, level, threads, xz=force_mode == "planesxz",
+                    seg_rows=seg_rows or planes.DEFAULT_SEG_ROWS, group_bytes=group_bytes))
+        return report
     fout = open(dst_path, "wb")
     w_ctx = (_Plain(fout) if level is None else
              _compressor(level, threads, long_distance).stream_writer(fout, closefd=False))
@@ -433,7 +446,24 @@ def iter_members(src_path, threads=-1):
     if head == ZSTD_MAGIC:
         r_ctx = zstd.ZstdDecompressor().stream_reader(fin, read_size=1 << 20,
                                                       read_across_frames=True)
+    elif head == MAGIC[:4] and fin.read(5) == planes.MAGIC3:
+        fin.seek(0)
+        with fin:
+            def wrap(emit):
+                def run(out):
+                    try:
+                        emit(out)
+                    except planes.PlanesError as e:
+                        raise PzstError(str(e)) from None
+                return run
+            try:
+                for name, mode, size, emit in planes.iter_members_v3(fin, threads):
+                    yield name, mode, size, wrap(emit)
+            except planes.PlanesError as e:
+                raise PzstError(str(e)) from None
+        return
     elif head == MAGIC[:4]:
+        fin.seek(0)
         r_ctx = _Plain(fin)                       # packing-only container
     else:
         fin.close()

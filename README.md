@@ -10,15 +10,18 @@ the container, plus an independent SHA-256 check in the test bench).
 | | config | size (22.8 GB corpus) | ratio | vs today's `.pat` zip | compress | decompress |
 |---|---|---|---|---|---|---|
 | Today's format | `.pat` zip (deflate) | 1.7 GB | 13.4x | 1.0x | – | – |
-| Plain zstd (baseline) | `raw:9` | 1.5 GB | 14.9x | 1.1x | 227 MB/s | 746 MB/s |
-| 🏆 **Best overall (smallest practical output)** | **`mixed:19`** | **709.4 MB** | **32.9x** | **2.4x** | 53 MB/s | **966 MB/s** |
-| ⚖️ **Best balanced** | **`mixed:9`** | **752.5 MB** | **31.0x** | **2.3x** | **879 MB/s** | **873 MB/s** |
-| ⚡ Fastest config that still beats zip | `mixed:3` | 758.7 MB | 30.7x | 2.3x | 1254 MB/s | 897 MB/s |
+| Plain zstd (baseline) | `raw:9` | 1.53 GB | 14.9x | 1.1x | 204 MB/s | 617 MB/s |
+| Previous best (v2) | `mixed:19` | 709.4 MB | 32.9x | 2.4x | 48 MB/s | 841 MB/s |
+| 🏆 **Best overall (smallest practical)** | **`planesxz:6`** | **667.8 MB** | **34.9x** | **2.6x** | 257 MB/s | 808 MB/s |
+| 🥇 **Best pure zstd** | **`planes:19`** | **700.6 MB** | **33.3x** | **2.4x** | 309 MB/s | **1030 MB/s** |
+| ⚖️ **Best balanced** | **`planes:9`** | **738.6 MB** | **31.6x** | **2.3x** | **1037 MB/s** | **945 MB/s** |
+| ⚡ Fastest config that still beats zip | `planes:3` | 754.3 MB | 30.9x | 2.3x | 1496 MB/s | 996 MB/s |
 
-Config names are `mode:zstd-level` (`none` = packing only, no zstd).
+Config names are `mode:level` (`none` = packing only, no back-end compressor).
+`planes*` is the v3 container (section 10); `planesxz` uses xz/LZMA frames instead of zstd (archive tier).
 Measured on an Intel i7-1370P (14 cores / 20 threads, 30 GB RAM, RHEL 9,
 Python 3.9, zstandard 0.25 / libzstd 1.5.7), on all 29 `.pat` files (22.8 GB uncompressed).
-Speeds vary by ±15% from run to run. Sizes are exact.
+Speeds vary by ±15% from run to run; decompression speeds include the test bench's SHA-256 check. Sizes are exact.
 
 ---
 
@@ -143,64 +146,120 @@ so it loses to bit-packing. `mixed` uses binary for 2-symbol pins, ternary only 
 **Best: not worth it.** It is the smallest output of all, but only 0.05% smaller than `mixed:19`
 while compressing 2x slower (it encodes everything twice). `mixed` alone gets nearly all of the gain.
 
+### 10. Ideas from the "split bit-planes" report → `planes` (container v3)
+Following the report's own advice, every idea was **measured on the real corpus first**
+(`tools/recon.py` → `results/recon.md`, `tools/explore_v3.py`):
+
+| report idea | measured here | built? |
+|---|---|---|
+| Bit-planes instead of 2-bit symbols | pins are already 1 bit; only 160 H/L/X pins (36 KB) → mask + value planes | yes |
+| XOR delta / period-aligned XOR | −0.06% | no |
+| Run lengths for slow pins, clock descriptors | slow + periodic pins = 0.03% of the output | no |
+| **Alias records for duplicate pins** | **38% of all pins are exact copies** (multi-site) | **yes** |
+| **Longer per-pin context** | whole-file pin series vs 1 Mi chunks: **−5 to −6%** | **yes** |
+| **Independent frames + index** | pins compress independently with no loss → parallel frames | **yes** |
+| zstd window 2³⁰–2³¹, cross-file dedup | 0% (no long-range or cross-file repeats) | no |
+| **Stronger back end (xz)** | 2–11% smaller than zstd −19 on real pin streams | **yes (archive tier)** |
+
+Where the bytes are: dense pins = **99.97%** of the compressed output, so ideas aimed at
+slow, periodic or constant pins cannot move the ratio on this corpus.
+
+| config (full corpus, same session) | size | ratio | vs zip | comp MB/s | decomp MB/s |
+|---|---|---|---|---|---|
+| `mixed:9` (previous) | 752.5 MB | 31.0x | 2.3x | 901 | 717 |
+| **`planes:9`** | **738.6 MB** | **31.6x** | 2.3x | **1037** | **945** |
+| `mixed:19` (previous) | 709.4 MB | 32.9x | 2.4x | 48 | 841 |
+| **`planes:19`** | **700.6 MB** | **33.3x** | 2.4x | **309** | **1030** |
+| **`planesxz:6`** | **667.8 MB** | **34.9x** | **2.6x** | 257 | 808 |
+
+**Best: `planes`.** At the same level it is 1–2% smaller, 15% to 6.4x faster to compress
+and 22–32% faster to decompress. With xz frames it is **6% smaller than the previous best
+while compressing 5.4x faster**. Gains are largest on multi-site files (009/024/025/026:
+−5 to −6% at L9/L19, −17% with xz). Full write-up: `results/IDEAS.md` §10.
+
 ---
 
 ## Overall ranking (all full-corpus configs, 29 files, 22.8 GB, all bit-exact)
 
-Rank 1 = best. Each config uses its latest (fastest-code) run.
+Rank 1 = best (of 23). Each config uses its latest full-corpus run.
 
 | config | size | ratio | vs .pat zip | comp MB/s | decomp MB/s | size rank | comp rank | decomp rank |
 |---|---|---|---|---|---|---|---|---|
-| `best:19` | 709.0 MB | 32.9x | 2.4x | 28 | 892 | **1** | 18 | 10 |
-| `mixed:19` | 709.4 MB | 32.9x | 2.4x | 53 | 966 | **2** | 17 | 6 |
-| `auto:19` | 710.7 MB | 32.8x | 2.4x | 59 | 862 | **3** | 16 | 12 |
-| `best:9` | 751.7 MB | 31.0x | 2.3x | 447 | 747 | 4 | 14 | 16 |
-| `auto:9` | 751.9 MB | 31.0x | 2.3x | 813 | 788 | 5 | 9 | 15 |
-| `mixed:9` | 752.5 MB | 31.0x | 2.3x | 879 | 873 | 6 | 8 | 11 |
-| `best:3` | 758.3 MB | 30.7x | 2.3x | 650 | 744 | 7 | 11 | 18 |
-| `auto:3` | 758.6 MB | 30.7x | 2.3x | 1046 | 794 | 8 | 7 | 14 |
-| `mixed:3` | 758.7 MB | 30.7x | 2.3x | 1254 | 897 | 9 | 6 | 9 |
-| `t5col:9` | 838.0 MB | 27.8x | 2.0x | 657 | 938 | 10 | 10 | 7 |
-| `t5row:9` | 1.2 GB | 19.2x | 1.4x | 467 | 910 | 11 | 13 | 8 |
-| `t5:9` | 1.2 GB | 18.7x | 1.4x | 587 | 845 | 12 | 12 | 13 |
-| `raw:9` (plain zstd) | 1.5 GB | 14.9x | 1.1x | 227 | 746 | 13 | 15 | 17 |
-| `mixed:none` | 2.6 GB | 8.6x | 0.6x | 2000 | 1062 | 14 | 2 | 2 |
-| `auto:none` | 2.8 GB | 8.1x | 0.6x | 1906 | 996 | 15 | 4 | 5 |
-| `t5col:none` | 4.5 GB | 5.1x | 0.4x | 1733 | 1039 | 16 | 5 | 3= |
-| `t5row:none` | 4.7 GB | 4.9x | 0.4x | 1970 | 1095 | 17 | 3 | **1** |
-| `t5:none` | 5.1 GB | 4.4x | 0.3x | 2615 | 1039 | 18 | **1** | 3= |
+| `planesxz:9` | 667.0 MB | 34.9x | 2.6x | 179 | 797 | 1 | 20 | 17 |
+| `planesxz:6` | 667.8 MB | 34.9x | 2.6x | 257 | 808 | 2 | 18 | 16 |
+| `planes:19` | 700.6 MB | 33.3x | 2.4x | 309 | 1030 | 3 | 17 | 5 |
+| `best:19` | 709.0 MB | 32.9x | 2.4x | 28 | 892 | 4 | 23 | 12 |
+| `mixed:19` | 709.4 MB | 32.9x | 2.4x | 48 | 841 | 5 | 22 | 15 |
+| `auto:19` | 710.7 MB | 32.8x | 2.4x | 59 | 862 | 6 | 21 | 13 |
+| `planes:9` | 738.6 MB | 31.6x | 2.3x | 1037 | 945 | 7 | 9 | 8 |
+| `best:9` | 751.7 MB | 31.0x | 2.3x | 447 | 747 | 8 | 16 | 20 |
+| `auto:9` | 751.9 MB | 31.0x | 2.3x | 813 | 788 | 9 | 11 | 19 |
+| `mixed:9` | 752.5 MB | 31.0x | 2.3x | 901 | 717 | 10 | 10 | 22 |
+| `planes:3` | 754.3 MB | 30.9x | 2.3x | 1496 | 996 | 11 | 6 | 7 |
+| `best:3` | 758.3 MB | 30.7x | 2.3x | 650 | 744 | 12 | 13 | 21 |
+| `auto:3` | 758.6 MB | 30.7x | 2.3x | 1046 | 794 | 13 | 8 | 18 |
+| `mixed:3` | 758.7 MB | 30.7x | 2.3x | 1254 | 897 | 14 | 7 | 11 |
+| `t5col:9` | 838.0 MB | 27.8x | 2.0x | 657 | 938 | 15 | 12 | 9 |
+| `t5row:9` | 1.18 GB | 19.2x | 1.4x | 467 | 910 | 16 | 15 | 10 |
+| `t5:9` | 1.22 GB | 18.7x | 1.4x | 587 | 845 | 17 | 14 | 14 |
+| `raw:9` | 1.53 GB | 14.9x | 1.1x | 204 | 617 | 18 | 19 | 23 |
+| `mixed:none` | 2.64 GB | 8.6x | 0.6x | 2000 | 1062 | 19 | 2 | 2 |
+| `auto:none` | 2.82 GB | 8.1x | 0.6x | 1906 | 996 | 20 | 4 | 6 |
+| `t5col:none` | 4.51 GB | 5.1x | 0.4x | 1733 | 1039 | 21 | 5 | 4 |
+| `t5row:none` | 4.68 GB | 4.9x | 0.4x | 1970 | 1095 | 22 | 3 | 1 |
+| `t5:none` | 5.14 GB | 4.4x | 0.3x | 2615 | 1039 | 23 | 1 | 3 |
 
 ### Winner per aspect
 | aspect | winner | runner-up | comment |
 |---|---|---|---|
-| Smallest output | `best:19` (709.0 MB) | `mixed:19` (709.4 MB) | 0.05% apart; `mixed:19` compresses 2x faster |
+| Smallest output | `planesxz:9` (667.0 MB) | `planesxz:6` (667.8 MB) | 0.1% apart; `:6` compresses 44% faster |
+| Smallest pure-zstd output | **`planes:19`** (700.6 MB) | `best:19` (709.0 MB) | and 11x faster to compress than `best:19` |
 | Fastest compression | `t5:none` (2615 MB/s) | `mixed:none` (2000 MB/s) | packing only, bigger than zip, so not usable |
-| Fastest compression that beats zip | **`mixed:3`** (1254 MB/s) | `auto:3` (1046 MB/s) | 30.7x |
+| Fastest compression that beats zip | **`planes:3`** (1496 MB/s) | `mixed:3` (1254 MB/s) | 30.9x |
 | Fastest decompression | `t5row:none` (1095 MB/s) | `mixed:none` (1062 MB/s) | bigger than zip |
-| Fastest decompression that beats zip | **`mixed:19`** (966 MB/s) | `t5col:9` (938 MB/s) | |
+| Fastest decompression that beats zip | **`planes:19`** (1030 MB/s) | `planes:3` (996 MB/s) | |
 | Worst | `raw:9` | – | barely beats zip, slow to compress |
 
 ---
 
-## 🏆 Best overall: `mixed:19`
+## 🏆 Best overall: `planesxz:6`
 
-The smallest output that is still practical: **709.4 MB, 32.9x, 2.4x smaller than
-today's `.pat` files**, with the **fastest decompression of any config that beats zip (966 MB/s)**.
-`best:19` is 0.4 MB smaller but compresses at half the speed, so `mixed:19`
-is the real winner when size is what counts. Compression (53 MB/s) is slow, but it runs
-only once per pattern, while the pattern is decompressed many times on the tester.
+**667.8 MB, 34.9x, 2.6x smaller than today's `.pat` files**: the smallest output of all
+(`planesxz:9` is only 0.1% smaller and 30% slower). Against the previous best (`mixed:19`)
+it is **6% smaller and compresses 5.4x faster (257 vs 48 MB/s)** with about the same
+decompression speed (808 MB/s). The trick: xz is slow, but it only sees the packed,
+de-duplicated bit-planes (1/8 to 1/24 of the original bytes), and the frames run on all cores.
 
-## ⚖️ Best balanced: `mixed:9`
+If the solution must be **pure zstd**, the winner is **`planes:19`**: 700.6 MB, 33.3x,
+2.4x vs zip, the **fastest decompression of any config that beats zip (1030 MB/s)**, and
+6.4x faster to compress than `mixed:19`.
 
-**752.5 MB, 31.0x, 2.3x smaller than zip, about 880 MB/s in both directions.**
+## ⚖️ Best balanced: `planes:9`
 
-- vs plain zstd: **2x smaller and about 4x faster to compress** (zstd sees 8x less data, and it is better organised).
-- vs the smallest (`best:19`): only 6% bigger, but **31x faster** to compress
-  (the 23 GB corpus in about 26 s instead of about 14 min).
-- vs `auto:9`: same size overall, slightly faster, and 6–8% smaller on `H/L/X` files.
-- `mixed:3` is an equally good choice when speed matters most (+1% size, +40% compression speed).
+**738.6 MB, 31.6x, 2.3x smaller than zip, > 1 GB/s compression, ~950 MB/s decompression.**
 
-### How `mixed` works
+- vs plain zstd: **2.1x smaller, 5x faster to compress, 1.5x faster to decompress**.
+- vs the previous balanced pick (`mixed:9`): 1.8% smaller, 15% faster to compress, 32% faster to decompress.
+- vs the smallest (`planesxz:6`): 11% bigger, but 4x faster to compress.
+- `planes:3` is the choice when speed matters most (+2% size, 1.5 GB/s compression).
+
+### How `planes` works
+1. **Full-length pin-major bit-planes.** `Vectors.vec` is cut into segments of 16 Mi vectors
+   (the whole file for 27/29 files). Inside a segment, every pin's waveform is one
+   contiguous bit stream (1 bit/vector). Newlines aren't stored.
+2. **Pin aliasing.** Per segment, each binary pin is stored, or marked all-0, all-1, or
+   "same bits as pin j" (exact byte comparison). That removes the 38% duplicated pins of
+   multi-site patterns, and complementary pins too (every stream starts with bit 0).
+3. **H/L/X pins** become a mask plane (X) plus a value plane (H/L).
+4. **Independent frames.** The streams are grouped into ~2 MiB frames, each compressed
+   as its own zstd (or xz) frame on all cores, listed in an index. The decoder
+   decompresses frames in parallel and pipelines unpacking, hashing and writing.
+5. **Integrity.** xxh3-128 over the decoded bytes and every metadata byte; any flipped
+   byte anywhere in the file is detected (the test suite flips every byte).
+
+Byte-level format: [`docs/FORMAT.md`](docs/FORMAT.md) §9.
+
+### How `mixed` (the previous v2 method) works
 1. **Pin-major layout.** `Vectors.vec` is cut into chunks of 1 Mi vectors, and inside each chunk
    every pin's waveform is stored contiguously.
 2. **Per-pin bit width**, recorded in the header together with the pin's symbols:
@@ -222,7 +281,8 @@ Byte-level format: [`docs/FORMAT.md`](docs/FORMAT.md).
 ## Repository layout
 
 ```
-patzstd/codec.py     codec / .pzst container
+patzstd/codec.py     codec / .pzst v2 container
+patzstd/planes.py    planes / planesxz: container v3 (bit-planes, aliasing, parallel frames)
 patzstd/fast.py      ctypes wrappers for the C kernels
 patzstd/kernels.c    C/OpenMP kernels (bitpack, transpose, ternary); built on first use
 patzstd/ternary.py   ternary 3^5 packing + Python/numpy reference versions
@@ -230,8 +290,9 @@ docs/FORMAT.md       byte-level specification of every mode
 compress.py          CLI: .pat / folder  -> .pzst
 decompress.py        CLI: .pzst          -> folder or .pat
 testbench.py         dataset benchmark + bit-exact verification
-tests/               unit tests (codec: 20, ternary: 29)
-tools/               ternary escape-overhead study
+tests/               unit tests (codec: 20, ternary: 29, planes: 14)
+tools/               recon.py (E0 per-pin analysis), explore_v3.py (report experiments),
+                     ternary_explore.py (ternary escape-overhead study)
 results/             every benchmark (CSV + Markdown) and IDEAS.md (full experiment log)
 ```
 
@@ -253,9 +314,11 @@ unpacked copies from `data/extracted/NNN.pat/` by default (`--source pat` reads 
 
 ```bash
 # recommended (balanced)
-./compress.py data/pat_original/*.pat --mode mixed -l 9      # -> out/NNN.pzst
-# smallest
-./compress.py data/pat_original/*.pat --mode mixed -l 19
+./compress.py data/pat_original/*.pat --mode planes -l 9     # -> out/NNN.pzst
+# smallest, pure zstd
+./compress.py data/pat_original/*.pat --mode planes -l 19
+# smallest overall (xz archive tier); --frame-mib 8 = another 0.6-1.8%, 2x slower
+./compress.py data/pat_original/*.pat --mode planesxz -l 6
 # plain zstd baseline
 ./compress.py data/pat_original/003.pat --mode raw -l 9
 
@@ -264,19 +327,21 @@ unpacked copies from `data/extracted/NNN.pat/` by default (`--source pat` reads 
 
 python -m unittest discover -s tests -v                      # unit tests
 ./testbench.py --quick                                       # small files only
-./testbench.py --configs raw:9 mixed:3 mixed:9 mixed:19      # full corpus
+./testbench.py --configs raw:9 planes:3 planes:9 planes:19 planesxz:6   # full corpus
+tools/recon.py                                               # per-pin analysis
 ```
 
-Modes: `auto` (bitpack / transpose / raw), `mixed`, `best`, `bitpack`, `transpose`,
-`t5`, `t5row`, `t5col`, `raw`. Levels: 1–22 or `none` (packing only).
+Modes: `planes`, `planesxz` (v3), `auto` (bitpack / transpose / raw), `mixed`, `best`,
+`bitpack`, `transpose`, `t5`, `t5row`, `t5col`, `raw`. Levels: 1–22 (`planesxz`: xz preset 0–9)
+or `none` (packing only). The decoder reads v2 and v3 files.
 
 Note: decompressed **members** are byte-identical to the originals. With `--as-pat`
 the zip container is rebuilt, so the `.pat` file's own bytes (timestamps,
 deflate output) differ, but its contents are identical.
 
 ## Next ideas (not tried yet)
-- Write each chunk as an independent zstd frame, so decompression can run in parallel (it currently stops scaling at 4 threads).
-- Store duplicated pin columns once (multi-site patterns repeat the same pin groups).
-- Detect repeating periods (clocks) before zstd.
-- A zstd dictionary trained across the corpus; windows larger than 128 MiB.
+- A context-modelling bit coder (JBIG-style template over the previous vectors of the same pin
+  and its neighbours) as an archive tier: zstd already beats the order-1 floor by 1.4x, so
+  the remaining structure is higher-order; decode would be MB/s, not GB/s.
+- A C decoder writing straight into tester memory (pin-major frames already match a per-pin layout).
 - Restore `genVec` / `repeat` loops from repeated vector blocks.
