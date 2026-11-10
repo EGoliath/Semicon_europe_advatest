@@ -1,0 +1,64 @@
+file  pins     rows       vec_bytes  sym_bytes%  nl%   other_members  symbols(count%)                    per-pin alphabets (count)
+001   192        104        20,072   90.52   0.47    1986  0:35.6 1:14.4 H:1.9 L:23.1 X:25.0    01x96 HLXx96  grid_ok=True CR=0
+002     5     685176     4,111,056   83.33  16.67     331  0:34.1 1:45.9 X:20.0                 0x1 01x3 Xx1  grid_ok=True CR=0
+003    76   32450208 2,498,666,016   98.70   1.30     901  0:15.7 1:84.3                        01x76  grid_ok=True CR=0
+004    76   18724952 1,441,821,304   98.70   1.30     901  0:14.9 1:35.1 X:50.0                 01x38 Xx38  grid_ok=True CR=0
+005    76   18626224 1,434,219,248   98.70   1.30     901  0:14.2 1:35.8 X:50.0                 01x38 Xx38  grid_ok=True CR=0
+006    76    2437584   187,693,968   98.70   1.30     900  0:11.1 1:38.9 X:50.0                 01x38 Xx38  grid_ok=True CR=0
+007   128    5451184   703,202,736   99.22   0.78    1316  0:14.7 1:85.3                        01x128  grid_ok=True CR=0
+008    76   21812696 1,679,577,592   98.70   1.30     901  0:23.1 1:76.9                        01x76  grid_ok=True CR=0
+009   192    9268080 1,788,739,440   99.48   0.52    1828  0:12.0 1:88.0                        01x192  grid_ok=True CR=0
+010   192    5456704 1,053,143,872   99.48   0.52    1828  0:19.0 1:81.0                        01x192  grid_ok=True CR=0
+011   192    2708112   522,665,616   99.48   0.52    1828  0:14.2 1:85.8                        01x192  grid_ok=True CR=0
+012   128     323472    41,727,888   99.22   0.78    1315  0:14.6 1:85.4                        01x128  grid_ok=True CR=0
+013     5     761360     4,568,160   83.33  16.67     331  0:35.1 1:44.9 X:20.0                 0x1 01x3 Xx1  grid_ok=True CR=0
+014   128    2596240   334,914,960   99.22   0.78    1316  0:14.6 1:85.4                        01x128  grid_ok=True CR=0
+015   128        104        13,416   89.40   0.70    1474  0:35.6 1:14.4 H:1.9 L:23.1 X:25.0    01x64 HLXx64  grid_ok=True CR=0
+016    76      20984     1,615,768   98.65   1.30     898  0:29.7 1:70.3                        01x76  grid_ok=True CR=0
+017     5     685176     4,111,056   83.33  16.67     331  0:34.1 1:45.9 X:20.0                 0x1 01x3 Xx1  grid_ok=True CR=0
+018    76   16044504 1,235,426,808   98.70   1.30     901  0:5.4 1:94.6                         01x76  grid_ok=True CR=0
+019    76    4664984   359,203,768   98.70   1.30     900  0:23.4 1:76.6                        01x76  grid_ok=True CR=0
+020    76   24060392 1,852,650,184   98.70   1.30     901  0:13.1 1:86.9                        01x76  grid_ok=True CR=0
+021   192     350704    67,685,872   99.48   0.52    1827  0:15.4 1:84.6                        01x192  grid_ok=True CR=0
+022    76    2907144   223,850,088   98.70   1.30     900  0:21.2 1:78.8                        01x76  grid_ok=True CR=0
+023    76   14181400 1,091,967,800   98.70   1.30     901  0:13.8 1:83.5 X:2.6                  01x74 Xx2  grid_ok=True CR=0
+024   128    9268080 1,195,582,320   99.22   0.78    1316  0:11.9 1:88.1                        01x128  grid_ok=True CR=0
+025   192    9268080 1,788,739,440   99.48   0.52    1828  0:12.1 1:87.9                        01x192  grid_ok=True CR=0
+026   192    9268080 1,788,739,440   99.48   0.52    1828  0:12.0 1:88.0                        01x192  grid_ok=True CR=0
+027   128    1844416   237,929,664   99.22   0.78    1316  0:14.4 1:85.6                        01x128  grid_ok=True CR=0
+028    76   32760152 2,522,531,704   98.70   1.30     901  0:11.7 1:88.3                        01x76  grid_ok=True CR=0
+029   192    1946720   375,716,960   99.48   0.52    1828  0:17.0 1:83.0                        01x192  grid_ok=True CR=0
+
+CORPUS bytes: {'vec_sym': '24,192,263,200 (98.983%)', 'newline': '248,573,016 (1.017%)', 'other': '34,633 (0.000%)'}
+CORPUS symbols: {'0': '14.07%', '1': '79.55%', 'H': '0.00%', 'L': '0.00%', 'X': '6.38%'}
+CORPUS per-pin alphabets (#pins): {'0': 3, '01': 2949, 'HLX': 160, 'X': 119}
+
+001 Counter({'genVec': 3, 'xmode': 1, 'repeat': 1}) bytes 1986
+002 Counter({'xmode': 1, 'genVec': 1}) bytes 331
+003 Counter({'xmode': 1, 'genVec': 1}) bytes 901
+004 Counter({'xmode': 1, 'genVec': 1}) bytes 901
+005 Counter({'xmode': 1, 'genVec': 1}) bytes 901
+006 Counter({'xmode': 1, 'genVec': 1}) bytes 900
+007 Counter({'xmode': 1, 'genVec': 1}) bytes 1316
+008 Counter({'xmode': 1, 'genVec': 1}) bytes 901
+009 Counter({'xmode': 1, 'genVec': 1}) bytes 1828
+010 Counter({'xmode': 1, 'genVec': 1}) bytes 1828
+011 Counter({'xmode': 1, 'genVec': 1}) bytes 1828
+012 Counter({'xmode': 1, 'genVec': 1}) bytes 1315
+013 Counter({'xmode': 1, 'genVec': 1}) bytes 331
+014 Counter({'xmode': 1, 'genVec': 1}) bytes 1316
+015 Counter({'genVec': 3, 'xmode': 1, 'repeat': 1}) bytes 1474
+016 Counter({'xmode': 1, 'genVec': 1}) bytes 898
+017 Counter({'xmode': 1, 'genVec': 1}) bytes 331
+018 Counter({'xmode': 1, 'genVec': 1}) bytes 901
+019 Counter({'xmode': 1, 'genVec': 1}) bytes 900
+020 Counter({'xmode': 1, 'genVec': 1}) bytes 901
+021 Counter({'xmode': 1, 'genVec': 1}) bytes 1827
+022 Counter({'xmode': 1, 'genVec': 1}) bytes 900
+023 Counter({'xmode': 1, 'genVec': 1}) bytes 901
+024 Counter({'xmode': 1, 'genVec': 1}) bytes 1316
+025 Counter({'xmode': 1, 'genVec': 1}) bytes 1828
+026 Counter({'xmode': 1, 'genVec': 1}) bytes 1828
+027 Counter({'xmode': 1, 'genVec': 1}) bytes 1316
+028 Counter({'xmode': 1, 'genVec': 1}) bytes 901
+029 Counter({'xmode': 1, 'genVec': 1}) bytes 1828

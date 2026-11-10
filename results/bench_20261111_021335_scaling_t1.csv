@@ -1,0 +1,3 @@
+file,source,threads,config,vec_mode,orig_bytes,pat_zip_bytes,pzst_bytes,ratio,vs_zip,comp_s,comp_MBps,decomp_s,decomp_MBps,verified
+003,extracted,1,raw:9,raw,2498666917,293212608,292473719,8.54,1.0,54.374,46.0,3.931,635.7,PASS
+003,extracted,1,auto:9,bitpack,2498666917,293212608,129140547,19.35,2.27,4.618,541.1,3.367,742.1,PASS
