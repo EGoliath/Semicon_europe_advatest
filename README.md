@@ -300,6 +300,8 @@ results/             every benchmark (CSV + Markdown) and IDEAS.md (full experim
 
 The pattern data (`data/`, 27 GB) is not in the repository.
 
+`alex/` holds a separate C prototype, **`pack`** (per-column alphabet + bit planes + zstd). It reaches 30.2x on the same 29 files, 2.15x smaller than zstd L9 (single thread, byte-exact). The folder has its own [`alex/README.md`](alex/README.md).
+
 ## Setup
 
 Requirements: Python ≥ 3.9 and `gcc` with OpenMP (the kernels are compiled automatically on first use).
