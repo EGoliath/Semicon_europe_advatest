@@ -1,0 +1,9 @@
+# compressed / uncompressed pattern data stays out of git
+*.vec
+*.compr
+*.pat
+*.zip
+*.lnk
+results/
+*.sprg
+*.cmt
