@@ -5,6 +5,8 @@ pattern-aware transform: **each pin's waveform is stored with only the bits it n
 Every result below was checked for an exact bit-for-bit round trip (xxh3-128 inside
 the container, plus an independent SHA-256 check in the test bench).
 
+> Full write-up of every algorithm, ranking and verdict: [`REPORT.md`](REPORT.md).
+
 ## TL;DR
 
 | | config | size (22.8 GB corpus) | ratio | vs today's `.pat` zip | compress | decompress |
