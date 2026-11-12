@@ -34,3 +34,13 @@ python evaluate.py /path/to/pat_files/          # writes eval_<package>_<time>.m
 - `_shared/` — sources of the files copied into every package (`evaluate.py`, PXT `patio.py` and CLIs).
 - `build_dist.sh` — re-syncs the shared files and rebuilds `dist/<package>.zip`.
 - `dist/` — one zip per package, ready to download / send.
+
+## End-to-end check of the packages (full corpus, CLI incl. Python start-up + file I/O + checksums)
+
+| package | size | verified | comp MB/s | decomp MB/s |
+|---|---|---|---|---|
+| `04_pp_zstd_long` | 732.5 MB | 29/29 | 46 | 752 |
+| `05_bk_container` | 732.9 MB | 29/29 | 196 | 756 |
+| `00_zstd9_baseline` | 1740.6 MB | 29/29 | 381 | 673 |
+
+Sizes match the benchmark exactly. Logs: `../extra_tests/logs/pkg_full_*.log`, `eval_*.md`.
