@@ -1,0 +1,48 @@
+1 files x 21 configs, 20 threads -> /home/admin/Documents/Semicon_europe_advatest/extra_tests/results/xt_bench_20261112_075445_probe028.csv
+file  config             orig       comp   ratio    vsZ9   cMB/s   dMB/s ok
+028   raw:zstd9        2.5 GB    91.8 MB   27.5x   1.00x    1836    1827 OK
+028   raw:zstd9R       2.5 GB    91.8 MB   27.5x   1.00x    1091    4215 OK
+028   raw:zstd9L       2.5 GB    88.6 MB   28.5x   1.04x     446    1608 OK
+028   raw:bz3          2.5 GB    47.4 MB   53.2x   1.94x     189     174 OK
+028   tr8:zstd9        2.5 GB    69.3 MB   36.4x   1.32x     636    1220 OK
+028   tr8:zstd9L       2.5 GB    68.7 MB   36.7x   1.34x     436    1254 OK
+028   tr8:bz3          2.5 GB    40.0 MB   63.1x   2.29x     252     230 OK
+028   pp:zstd9         2.5 GB    47.4 MB   53.2x   1.94x    1140    1652 OK
+028   pp:zstd9L        2.5 GB    47.2 MB   53.4x   1.94x    1177    1845 OK
+028   pp:zstd19L       2.5 GB    42.0 MB   60.1x   2.19x     107    2086 OK
+028   pp:zstd9R        2.5 GB    47.4 MB   53.3x   1.94x    1254    1852 OK
+028   pp:zstd3R        2.5 GB    49.5 MB   50.9x   1.85x    2031    1993 OK
+028   pp:bz3           2.5 GB    40.5 MB   62.3x   2.27x     442     476 OK
+028   pp:br9           2.5 GB    45.9 MB   54.9x   2.00x     207    1824 OK
+028   pp:lz4hc         2.5 GB    56.0 MB   45.1x   1.64x     216    2324 OK
+028   pp:lz4           2.5 GB    78.9 MB   32.0x   1.16x    2286    2020 OK
+028   pp:dfl9          2.5 GB    48.8 MB   51.7x   1.88x     126    2163 OK
+028   ppd:zstd9L       2.5 GB    48.0 MB   52.6x   1.91x    1166    1618 OK
+028   ppd:bz3          2.5 GB    40.7 MB   62.0x   2.26x     446     464 OK
+028   rx:zstd9L        2.5 GB    63.5 MB   39.7x   1.45x     811    1745 OK
+028   rx:bz3           2.5 GB    52.9 MB   47.7x   1.74x     235     237 OK
+DONE /home/admin/Documents/Semicon_europe_advatest/extra_tests/results/xt_bench_20261112_075445_probe028.md
+	Command being timed: "../../Semicon_europe_challenge/.venv/bin/python scripts/xt_bench.py --files 028 --tag probe028"
+	User time (seconds): 1651.33
+	System time (seconds): 90.20
+	Percent of CPU this job got: 823%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 3:31.47
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 17542828
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 16223677
+	Voluntary context switches: 11028
+	Involuntary context switches: 146918
+	Swaps: 0
+	File system inputs: 4926792
+	File system outputs: 64
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+EXIT 0

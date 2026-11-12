@@ -1,0 +1,19 @@
+3 files x 5 configs, 1 threads -> /home/admin/Documents/Semicon_europe_advatest/extra_tests/results/xt2_bench_20261112_121304_single_core.csv
+file  config             orig       comp   ratio    vsZ9   cMB/s   dMB/s ok  planes(zero/ones/copy/not/stored/xor) mode
+007   raw:z9         703.2 MB    36.2 MB   19.4x   1.00x     136    1623 OK  - raw
+007   raw:z19        703.2 MB    23.4 MB   30.0x   1.55x       5    1865 OK  - raw
+007   bk4:3g         703.2 MB    12.2 MB   57.5x   2.96x     493     409 OK  0/0/128/0/128/0 bk
+007   bk4:9g         703.2 MB    11.9 MB   59.2x   3.05x     393     409 OK  0/0/128/0/128/0 bk
+007   bkA:19lg       703.2 MB    10.8 MB   64.9x   3.34x     105     440 OK  0/0/64/0/64/0 bk
+014   raw:z9         334.9 MB    16.0 MB   21.0x   1.00x     138    1599 OK  - raw
+014   raw:z19        334.9 MB     8.1 MB   41.2x   1.96x       6    1963 OK  - raw
+014   bk4:3g         334.9 MB     4.3 MB   78.4x   3.73x     586     541 OK  0/0/64/0/64/0 bk
+014   bk4:9g         334.9 MB     3.9 MB   85.2x   4.06x     458     542 OK  0/0/64/0/64/0 bk
+014   bkA:19lg       334.9 MB     3.4 MB   99.2x   4.73x      93     538 OK  0/0/64/0/64/0 bk
+016   raw:z9           1.6 MB    53.2 KB   30.4x   1.00x     212    1941 OK  - raw
+016   raw:z19          1.6 MB    39.7 KB   40.7x   1.34x       9    1841 OK  - raw
+016   bk4:3g           1.6 MB    33.7 KB   48.0x   1.58x     359     522 OK  0/0/0/0/76/0 bk
+016   bk4:9g           1.6 MB    33.0 KB   49.0x   1.61x     140     517 OK  0/0/0/0/76/0 bk
+016   bkA:19lg         1.6 MB    32.1 KB   50.4x   1.66x       8     500 OK  0/0/0/0/76/0 bk
+DONE /home/admin/Documents/Semicon_europe_advatest/extra_tests/results/xt2_bench_20261112_121304_single_core.md
+EXIT 0
