@@ -6,3 +6,6 @@ work/
 __pycache__/
 *.so
 *.pzst
+
+# vendored wheels (install with pip instead)
+extra_tests/scripts/_pydeps/

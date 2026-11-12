@@ -1,0 +1,11 @@
+file,source,threads,cpu_profile,isa,config,vec_mode,orig_bytes,pat_zip_bytes,pzst_bytes,ratio,vs_zip,comp_s,comp_MBps,decomp_s,decomp_MBps,verified
+014,extracted,-1,orig,native,planes:19,planes,334916276,17066098,3439601,97.37,4.96,1.4,239.2,0.493,679.3,PASS
+014,extracted,-1,orig,native,planesxz:6,planes,334916276,17066098,2979759,112.4,5.73,1.506,222.4,0.505,663.0,PASS
+014,extracted,-1,orig,native,mixed:19,mixed,334916276,17066098,3380045,99.09,5.05,6.832,49.0,0.449,746.1,PASS
+014,extracted,-1,mt,avx2,amd_mixed_mt:19,mixed,334916276,17066098,3380045,99.09,5.05,6.796,49.3,0.491,681.4,PASS
+014,extracted,-1,st,avx2,amd_mixed_st:19,mixed,334916276,17066098,3379177,99.11,5.05,6.995,47.9,0.602,556.3,PASS
+014,extracted,-1,mt,avx2,amd_planes_mt:19,planes,334916276,17066098,3439631,97.37,4.96,1.343,249.4,0.409,818.5,PASS
+014,extracted,-1,mt,avx2,amd_planesxz_mt:6,planes,334916276,17066098,2979732,112.4,5.73,1.719,194.8,0.507,660.6,PASS
+014,extracted,-1,mt,avx2,amd_pcm_mt:2,planes,334916276,17066098,2304342,145.34,7.41,3.863,86.7,2.988,112.1,PASS
+014,extracted,-1,mt,avx2,amd_pcm_mt:3,planes,334916276,17066098,2297128,145.8,7.43,3.902,85.8,3.252,103.0,PASS
+014,extracted,-1,mt,avx2,amd_planesbwt_mt:1,planes,334916276,17066098,3375836,99.21,5.06,0.75,446.4,0.873,383.5,PASS
