@@ -27,6 +27,110 @@ Speeds vary by ±15% from run to run; decompression speeds include the test benc
 
 ---
 
+## Top 20 of all tests vs plain zstd -9 (2026-11-12)
+
+All 29 files (24.44 GB = 22.8 GiB uncompressed), all 20 threads, every row a verified bit-exact round trip.
+Sizes here are in **MB = 10⁶ bytes** (the tables further down use MiB, so their numbers look ~5% smaller).
+Reference: **plain `zstd -9` = 1740.7 MB**. "Saved" = 1740.7 MB − size.
+
+The `amd_*_mt` builds of `planesxz`, `planes`, `best`, `mixed` and `auto` give exactly the same size
+as the originals and are left out. With them: `extra_tests/results/TOP25_ALL_TESTS_20261112.md`.
+
+| # | algorithm | from | size | saved vs zstd-9 | % smaller | × smaller | comp MB/s | decomp MB/s |
+|---|---|---|---|---|---|---|---|---|
+| 1 | `amd_pcm_mt:3` | `patamd/` | 657.8 MB | 1082.9 MB | **62.2%** | **2.65×** | 49 | 51 |
+| 2 | `amd_pcm_mt:2` | `patamd/` | 659.0 MB | 1081.7 MB | 62.1% | 2.64× | 62 | 55 |
+| 3 | `amd_planesbwt_mt:1` | `patamd/` | 687.3 MB | 1053.4 MB | 60.5% | 2.53× | 477 | 438 |
+| 4 | `planesxz:9` | `patzstd/` | 699.4 MB | 1041.3 MB | 59.8% | 2.49× | 194 | 813 |
+| 5 | `planesxz:6` | `patzstd/` | 700.2 MB | 1040.5 MB | 59.8% | 2.49× | 270 | 781 |
+| 6 | `pp:zstd19L` | `extra_tests/` round 1 | 732.5 MB | 1008.2 MB | 57.9% | 2.38× | 73 | **3197** |
+| 7 | `bkA:19lg` | `extra_tests/` round 2 | 732.9 MB | 1007.8 MB | 57.9% | 2.38× | 247 | 2213 |
+| 8 | `bk16:19lg` | `extra_tests/` round 2 | 733.6 MB | 1007.1 MB | 57.9% | 2.37× | 231 | 2059 |
+| 9 | `planes:19` | `patzstd/` | 734.6 MB | 1006.1 MB | 57.8% | 2.37× | 300 | 967 |
+| 10 | `best:19` | `patzstd/` | 743.4 MB | 997.3 MB | 57.3% | 2.34× | 24 | 722 |
+| 11 | `mixed:19` | `patzstd/` | 743.8 MB | 996.9 MB | 57.3% | 2.34× | 46 | 750 |
+| 12 | `auto:19` | `patzstd/` | 745.2 MB | 995.5 MB | 57.2% | 2.34× | 49 | 641 |
+| 13 | `planes:9` | `patzstd/` | 774.5 MB | 966.2 MB | 55.5% | 2.25× | 1160 | 936 |
+| 14 | `pp:zstd9L` | `extra_tests/` round 1 | 777.3 MB | 963.4 MB | 55.3% | 2.24× | 1143 | 1833 |
+| 15 | `bk4:9g` | `extra_tests/` round 2 | 780.2 MB | 960.5 MB | 55.2% | 2.23× | 994 | 1633 |
+| 16 | `best:9` | `patzstd/` | 788.2 MB | 952.5 MB | 54.7% | 2.21× | 530 | 651 |
+| 17 | `auto:9` | `patzstd/` | 788.5 MB | 952.2 MB | 54.7% | 2.21× | 813 | 788 |
+| 18 | `mixed:9` | `patzstd/` | 789.1 MB | 951.6 MB | 54.7% | 2.21× | 901 | 717 |
+| 19 | `planes:3` | `patzstd/` | 790.9 MB | 949.8 MB | 54.6% | 2.20× | **1512** | 1139 |
+| 20 | `bk4:3g` | `extra_tests/` round 2 | 794.1 MB | 946.6 MB | 54.4% | 2.19× | 1485 | 1648 |
+| ref | plain `zstd -9` | – | 1740.7 MB | 0 | 0% | 1.00× | ~510 | ~1230 |
+
+Speeds come from three different bench scripts that time things slightly differently
+(plain zstd -9 measured 505–517 MB/s compress and 1211–1245 MB/s decompress across them),
+so compare speeds only roughly; sizes are exact.
+
+---
+
+## Presentation shortlist: #4, #6, #7, #8, #9, #10
+
+Six algorithms from the top 10 that show the different ways we got to **about 2.4–2.5× smaller than zstd -9**.
+
+| # | algorithm | in one sentence | size | % smaller than zstd-9 | × smaller | compress | decompress |
+|---|---|---|---|---|---|---|---|
+| 4 | `planesxz:9` | bit planes + duplicate removal, packed with **xz** (strongest classic compressor) | 699.4 MB | **59.8%** | **2.49×** | 194 MB/s | 813 MB/s |
+| 6 | `pp:zstd19L` | bit planes, **one big zstd-19 stream** per file that can reuse patterns from far back | 732.5 MB | 57.9% | 2.38× | 73 MB/s | **3197 MB/s** |
+| 7 | `bkA:19lg` | bit planes + skip constant/duplicate/inverted pins, whole file in one block, many small zstd-19 pieces | 732.9 MB | 57.9% | 2.38× | 247 MB/s | 2213 MB/s |
+| 8 | `bk16:19lg` | same as #7, but cut into **independent blocks of 16 M rows** (any block can be read alone) | 733.6 MB | 57.9% | 2.37× | 231 MB/s | 2059 MB/s |
+| 9 | `planes:19` | our main codec: bit planes + duplicate removal + zstd-19 in parallel frames, with an integrity checksum | 734.6 MB | 57.8% | 2.37× | 300 MB/s | 967 MB/s |
+| 10 | `best:19` | compress each file **two ways** (`auto` and `mixed`) and keep the smaller one | 743.4 MB | 57.3% | 2.34× | 24 MB/s | 722 MB/s |
+| ref | plain `zstd -9` | the file as it is, standard zstd | 1740.7 MB | 0% | 1.00× | ~510 MB/s | ~1230 MB/s |
+
+### The common idea (why all six beat zstd by more than 2×)
+
+A pattern file is a big table: **one line per test cycle, one character per pin**
+(`0`, `1`, `H`, `L`, `X` …). In the file each character costs 8 bits, but a pin only ever
+uses 1 to 3 different values, so it really needs **0, 1 or 2 bits**.
+
+All six algorithms do the same three things before compressing:
+
+1. **Shrink every character to the bits it really needs.** A pin that is always `X` costs nothing;
+   a `0/1` pin costs 1 bit per cycle. That alone makes the data ~8× smaller.
+2. **Turn the table sideways.** Instead of storing the file line by line (all pins of cycle 1,
+   then all pins of cycle 2 …), each pin's whole history is stored in one piece
+   (a "bit plane"). A clock then looks like `0101010101…` and a slow control line like
+   `0000…1111…`: long, regular runs that a compressor squeezes very well.
+3. **Then compress** with a standard compressor (zstd or xz).
+
+Plain zstd sees the original text line by line and never gets the chance to find these
+patterns. That is the whole gap between 1740 MB and ~730 MB.
+
+### What makes each one different
+
+- **#4 `planesxz:9`, smallest of the six.** Same bit planes as #9, but compressed with
+  **xz** instead of zstd. xz searches harder, so it is ~5% smaller than #9, but compression is
+  slower (194 vs 300 MB/s) and so is decompression (813 vs 967 MB/s). Good for long-term archive storage.
+- **#6 `pp:zstd19L`, fastest to decompress (3.2 GB/s).** The simplest version: bit planes,
+  then **one single zstd-19 stream per file** with a very long memory (`L` = "long mode",
+  it can reuse a pattern seen up to 2 GB earlier). Decompression is very fast, but compression is slow
+  (73 MB/s) and you always have to decompress the whole file.
+- **#7 `bkA:19lg`, best speed/size mix of the zstd family.** Adds **smart skipping**:
+  pins that are all 0, all 1, an exact copy of another pin, or its exact inverse are not
+  stored at all, just a 2-byte note ("same as pin 12"). 38% of pins are copies (the same
+  signal sent to several test sites). The rest is split into many small zstd-19 pieces that all
+  CPU cores compress and decompress at the same time (`g`), which is why it is 3× faster to compress than #6.
+- **#8 `bk16:19lg`, the same plus random access.** Like #7, but the file is first cut into
+  **independent blocks of 16.8 million cycles**. Any block can be decompressed without the
+  others (e.g. to load just part of a pattern into the tester). That costs only **0.1%**
+  in size compared with #7.
+- **#9 `planes:19`, our production codec.** The same ideas as #7 (bit planes, duplicate pins,
+  parallel frames) inside our full container format, which also stores a **checksum
+  (xxh3-128)** so a corrupted file is always detected. Its decompression number is lower than #7/#8
+  partly because its test bench also runs a SHA-256 check on the output (round 2 measured in memory).
+- **#10 `best:19`, try both and keep the winner.** Compresses every file with two older
+  methods (`auto` and `mixed`) and keeps the smaller one. It works, but it does all the work twice
+  (24 MB/s) for only 0.05% gain, and newer methods (#4–#9) are smaller *and* faster.
+
+**Takeaway for the slide:** the big win (2.3×) comes from **reorganising the data per pin
+at the bit level**. The choice of compressor (zstd, xz) and the container details only move
+the result by a few percent; they mainly decide speed, random access and robustness.
+
+---
+
 ## The idea in one picture
 
 `Vectors.vec` (99% of the data) is a grid: one line per vector (test cycle), one

@@ -17,6 +17,29 @@ CLI below also includes Python start-up and file I/O, so re-measure with `evalua
 - Python 3.9+, `pip install -r requirements.txt`
 - System: gcc, OpenMP, libzstd + headers (`zstd.h`)
 
+## Quick start on a new machine (Linux)
+
+```bash
+# 1. system packages (pick your distro)
+sudo dnf install -y gcc python3 python3-pip libzstd-devel unzip        # RHEL / Rocky / Fedora
+sudo apt install -y gcc python3 python3-venv libzstd-dev unzip         # Ubuntu / Debian
+
+# 2. unpack and set up Python
+unzip 05_bk_container.zip && cd 05_bk_container
+python3 -m venv venv && ./venv/bin/pip install -r requirements.txt
+
+# 3. test on your .pat files (folder with .pat zips or extracted NNN.pat/ folders)
+./venv/bin/python evaluate.py /path/to/pat_files/
+```
+
+The C kernels (`bk_kernels.c`) are compiled automatically on first use with `-march=native`
+into `libbk.so`, so the build is tuned to the machine it runs on. If you copy an already-used
+folder to a different CPU, delete `libbk.so` first so it is rebuilt there (the zip does not contain it).
+Compressed `.pxt` files can be decompressed on any machine.
+
+Checked from a clean unzip + fresh venv (RHEL 9, Python 3.9, 2026-11-12) on files 001, 007, 009 and 025:
+4280.7 MB → 49.2 MB (87.1x), verified 4/4 bit-exact.
+
 ## Usage
 
 ```bash
